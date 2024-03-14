@@ -644,7 +644,9 @@ class Trade:
     def pl_pct(self):
         """Trade profit (positive) or loss (negative) in percent."""
         price = self.__exit_price or self.__broker.last_price
-        return copysign(1, self.__size) * (price / self.__entry_price - 1)
+        # return copysign(1, self.__size) * (price / self.__entry_price - 1)
+        # JOS : this works better with a negative basket
+        return copysign(1, self.__size) * (price - self.__entry_price) /abs(self.__entry_price)
 
     @property
     def value(self):
@@ -686,7 +688,8 @@ class Trade:
 
     def __set_contingent(self, type, price):
         assert type in ('sl', 'tp')
-        assert price is None or 0 < price < np.inf
+        #JOS: apa ini + -
+        #assert price is None or 0 < price < np.inf
         attr = f'_{self.__class__.__qualname__}__{type}_order'
         order: Order = getattr(self, attr)
         if order:
@@ -805,7 +808,8 @@ class _Broker:
 
         # If equity is negative, set all to 0 and stop the simulation
         if equity <= 0:
-            assert self.margin_available <= 0
+            # JOS: CUSTOM
+            # assert self.margin_available <= 0
             for trade in self.trades:
                 self._close_trade(trade, self._data.Close[-1], i)
             self._cash = 0
@@ -1077,9 +1081,14 @@ class Backtest:
 
         [FIFO]: https://www.investopedia.com/terms/n/nfa-compliance-rule-2-43b.asp
         """
+        # JOS what is this shit even
+        #if not (isinstance(strategy, type) and issubclass(strategy, Strategy)):
+        #    raise TypeError('`strategy` must be a Strategy sub-type')
+        #print(f"{strategy.__dict__}")
+        #print(f"{type}")
+        #print(f"isinstance(strategy, type) {isinstance(strategy, type)}")
+        #print(f"issubclass(strategy, Strategy), type) {issubclass(strategy, Strategy)}")
 
-        if not (isinstance(strategy, type) and issubclass(strategy, Strategy)):
-            raise TypeError('`strategy` must be a Strategy sub-type')
         if not isinstance(data, pd.DataFrame):
             raise TypeError("`data` must be a pandas.DataFrame with columns")
         if not isinstance(commission, Number):
